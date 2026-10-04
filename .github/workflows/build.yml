@@ -1,0 +1,120 @@
+name: Build desktop installers
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, master]
+    tags: ['v*']
+  pull_request:
+    branches: [main, master]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: build-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref_type != 'tag' }}
+
+jobs:
+  build:
+    name: Build ${{ matrix.platform }} x64
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: windows
+            runner: windows-latest
+            command: release:win
+          - platform: linux
+            runner: ubuntu-22.04
+            command: release:linux
+    defaults:
+      run:
+        shell: bash
+    env:
+      CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+      ELECTRON_BUILDER_ALLOW_UNRESOLVED_DEPENDENCIES: 'false'
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up pnpm from packageManager
+        uses: pnpm/action-setup@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Check release version
+        id: version
+        run: |
+          node --input-type=module <<'NODE'
+          import { readFileSync, appendFileSync } from 'node:fs';
+          const { version } = JSON.parse(readFileSync('package.json', 'utf8'));
+          if (!/^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/.test(version)) {
+            throw new Error(`Invalid package version: ${version}`);
+          }
+          if (process.env.GITHUB_REF_TYPE === 'tag' && process.env.GITHUB_REF_NAME !== `v${version}`) {
+            throw new Error(`Tag ${process.env.GITHUB_REF_NAME} must match package.json v${version}`);
+          }
+          appendFileSync(process.env.GITHUB_OUTPUT, `version=${version}\n`);
+          NODE
+
+      - name: Install Linux packaging and display dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends -y rpm xvfb libgtk-3-0 libnss3 libasound2 libgbm1 libfuse2
+
+      - name: Install dependencies for this platform
+        run: pnpm install --frozen-lockfile
+
+      - name: Run tests
+        run: pnpm test
+
+      - name: Build application and installers
+        run: pnpm ${{ matrix.command }}
+
+      - name: Verify packaged app on Linux
+        if: runner.os == 'Linux'
+        run: xvfb-run -a pnpm exec electron scripts/smoke-release.mjs release/linux-unpacked/resources/app.asar
+
+      - name: Verify packaged app on Windows
+        if: runner.os == 'Windows'
+        run: pnpm exec electron scripts/smoke-release.mjs release/win-unpacked/resources/app.asar
+
+      - name: Verify installer files and create checksums
+        run: node scripts/verify-artifacts.mjs
+
+      - name: Upload installers and notices
+        uses: actions/upload-artifact@v4
+        with:
+          name: mapper-${{ steps.version.outputs.version }}-${{ matrix.platform }}-x64
+          if-no-files-found: error
+          retention-days: 30
+          path: |
+            release/mapper-*.exe
+            release/mapper-*.exe.blockmap
+            release/mapper-*.AppImage
+            release/mapper-*.rpm
+            release/SHA256SUMS
+            resources/notices/
+            THIRD_PARTY_NOTICES.md
+            LICENSE
+
+      - name: Upload packaging diagnostics on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-diagnostics-${{ matrix.platform }}
+          if-no-files-found: ignore
+          retention-days: 7
+          path: |
+            release/builder-debug.yml
+            release/builder-effective-config.yaml

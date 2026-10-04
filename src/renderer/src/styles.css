@@ -1,0 +1,262 @@
+@import "tailwindcss";
+
+/* Material Design 3 baseline 色彩方案（亮色） */
+:root {
+  --md-primary: #6750a4;
+  --md-on-primary: #ffffff;
+  --md-primary-container: #eaddff;
+  --md-on-primary-container: #21005d;
+  --md-secondary: #625b71;
+  --md-on-secondary: #ffffff;
+  --md-secondary-container: #e8def8;
+  --md-on-secondary-container: #1d192b;
+  --md-tertiary: #7d5260;
+  --md-on-tertiary: #ffffff;
+  --md-tertiary-container: #ffd8e4;
+  --md-on-tertiary-container: #31111d;
+  --md-error: #b3261e;
+  --md-on-error: #ffffff;
+  --md-error-container: #f9dedc;
+  --md-on-error-container: #410e0b;
+  --md-surface: #fef7ff;
+  --md-on-surface: #1d1b20;
+  --md-surface-variant: #e7e0ec;
+  --md-on-surface-variant: #49454f;
+  --md-surface-dim: #ded8e1;
+  --md-surface-bright: #fef7ff;
+  --md-surface-container-lowest: #ffffff;
+  --md-surface-container-low: #f7f2fa;
+  --md-surface-container: #f3edf7;
+  --md-surface-container-high: #ece6f0;
+  --md-surface-container-highest: #e6e0e9;
+  --md-inverse-surface: #322f35;
+  --md-inverse-on-surface: #f5eff7;
+  --md-inverse-primary: #d0bcff;
+  --md-outline: #79747e;
+  --md-outline-variant: #cac4d0;
+  --md-scrim: #000000;
+  --md-shadow: #000000;
+
+  /* 画布测量强调色：在两种主题下都需在地图上可读 */
+  --md-measure-line: #b3261e;
+  --md-measure-fill: rgba(103, 80, 164, 0.28);
+  --md-measure-fill-stroke: #6750a4;
+}
+
+/* Material Design 3 baseline 色彩方案（暗色） */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --md-primary: #d0bcff;
+    --md-on-primary: #381e72;
+    --md-primary-container: #4f378b;
+    --md-on-primary-container: #eaddff;
+    --md-secondary: #ccc2dc;
+    --md-on-secondary: #332d41;
+    --md-secondary-container: #4a4458;
+    --md-on-secondary-container: #e8def8;
+    --md-tertiary: #efb8c8;
+    --md-on-tertiary: #492532;
+    --md-tertiary-container: #633b48;
+    --md-on-tertiary-container: #ffd8e4;
+    --md-error: #f2b8b5;
+    --md-on-error: #601410;
+    --md-error-container: #8c1d18;
+    --md-on-error-container: #f9dedc;
+    --md-surface: #141218;
+    --md-on-surface: #e6e0e9;
+    --md-surface-variant: #49454f;
+    --md-on-surface-variant: #cac4d0;
+    --md-surface-dim: #141218;
+    --md-surface-bright: #3b383e;
+    --md-surface-container-lowest: #0f0d13;
+    --md-surface-container-low: #1d1b20;
+    --md-surface-container: #211f26;
+    --md-surface-container-high: #2b2930;
+    --md-surface-container-highest: #36343b;
+    --md-inverse-surface: #e6e0e9;
+    --md-inverse-on-surface: #322f35;
+    --md-inverse-primary: #6750a4;
+    --md-outline: #938f99;
+    --md-outline-variant: #49454f;
+    --md-scrim: #000000;
+    --md-shadow: #000000;
+
+    --md-measure-line: #f2b8b5;
+    --md-measure-fill: rgba(208, 188, 255, 0.3);
+    --md-measure-fill-stroke: #d0bcff;
+  }
+}
+
+@theme inline {
+  --color-primary: var(--md-primary);
+  --color-on-primary: var(--md-on-primary);
+  --color-primary-container: var(--md-primary-container);
+  --color-on-primary-container: var(--md-on-primary-container);
+  --color-secondary: var(--md-secondary);
+  --color-on-secondary: var(--md-on-secondary);
+  --color-secondary-container: var(--md-secondary-container);
+  --color-on-secondary-container: var(--md-on-secondary-container);
+  --color-tertiary: var(--md-tertiary);
+  --color-on-tertiary: var(--md-on-tertiary);
+  --color-tertiary-container: var(--md-tertiary-container);
+  --color-on-tertiary-container: var(--md-on-tertiary-container);
+  --color-error: var(--md-error);
+  --color-on-error: var(--md-on-error);
+  --color-error-container: var(--md-error-container);
+  --color-on-error-container: var(--md-on-error-container);
+  --color-surface: var(--md-surface);
+  --color-on-surface: var(--md-on-surface);
+  --color-surface-variant: var(--md-surface-variant);
+  --color-on-surface-variant: var(--md-on-surface-variant);
+  --color-surface-dim: var(--md-surface-dim);
+  --color-surface-bright: var(--md-surface-bright);
+  --color-surface-container-lowest: var(--md-surface-container-lowest);
+  --color-surface-container-low: var(--md-surface-container-low);
+  --color-surface-container: var(--md-surface-container);
+  --color-surface-container-high: var(--md-surface-container-high);
+  --color-surface-container-highest: var(--md-surface-container-highest);
+  --color-inverse-surface: var(--md-inverse-surface);
+  --color-inverse-on-surface: var(--md-inverse-on-surface);
+  --color-inverse-primary: var(--md-inverse-primary);
+  --color-outline: var(--md-outline);
+  --color-outline-variant: var(--md-outline-variant);
+  --color-scrim: var(--md-scrim);
+  --color-measure-line: var(--md-measure-line);
+  --color-measure-fill-stroke: var(--md-measure-fill-stroke);
+
+  --font-sans: Roboto, "Noto Sans SC", "Microsoft YaHei", system-ui, sans-serif;
+
+  --shadow-elevation-1: 0 1px 2px 0 rgb(0 0 0 / 0.3), 0 1px 3px 1px rgb(0 0 0 / 0.15);
+  --shadow-elevation-2: 0 1px 2px 0 rgb(0 0 0 / 0.3), 0 2px 6px 2px rgb(0 0 0 / 0.15);
+  --shadow-elevation-3: 0 1px 3px 0 rgb(0 0 0 / 0.3), 0 4px 8px 3px rgb(0 0 0 / 0.15);
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+}
+
+body {
+  background: var(--md-surface);
+  color: var(--md-on-surface);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  user-select: none;
+}
+
+/* MD3 排版比例（常用档位） */
+.md3-display-small { font-size: 36px; line-height: 44px; font-weight: 400; }
+.md3-headline-small { font-size: 24px; line-height: 32px; font-weight: 400; }
+.md3-title-large { font-size: 22px; line-height: 28px; font-weight: 400; }
+.md3-title-medium { font-size: 16px; line-height: 24px; font-weight: 500; letter-spacing: 0.15px; }
+.md3-title-small { font-size: 14px; line-height: 20px; font-weight: 500; letter-spacing: 0.1px; }
+.md3-body-large { font-size: 16px; line-height: 24px; font-weight: 400; letter-spacing: 0.5px; }
+.md3-body-medium { font-size: 14px; line-height: 20px; font-weight: 400; letter-spacing: 0.25px; }
+.md3-body-small { font-size: 12px; line-height: 16px; font-weight: 400; letter-spacing: 0.4px; }
+.md3-label-large { font-size: 14px; line-height: 20px; font-weight: 500; letter-spacing: 0.1px; }
+.md3-label-medium { font-size: 12px; line-height: 16px; font-weight: 500; letter-spacing: 0.5px; }
+.md3-label-small { font-size: 11px; line-height: 16px; font-weight: 500; letter-spacing: 0.5px; }
+
+/* MD3 状态层：hover/focus/pressed 覆盖层 */
+.state-layer {
+  position: relative;
+  overflow: hidden;
+}
+.state-layer::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: currentColor;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+  pointer-events: none;
+}
+.state-layer:hover::after { opacity: 0.08; }
+.state-layer:focus-visible::after { opacity: 0.1; }
+.state-layer:active::after { opacity: 0.12; }
+
+/* MD3 滑块 */
+input[type="range"].md3-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--md-surface-container-highest);
+  outline: none;
+  cursor: pointer;
+}
+input[type="range"].md3-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--md-primary);
+  border: none;
+  cursor: pointer;
+}
+input[type="range"].md3-slider::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--md-primary);
+  border: none;
+  cursor: pointer;
+}
+
+/* MD3 文本输入框（filled text field 简化版） */
+.md3-field {
+  background: var(--md-surface-container-highest);
+  border: none;
+  border-bottom: 1px solid var(--md-on-surface-variant);
+  border-radius: 4px 4px 0 0;
+  color: var(--md-on-surface);
+  padding: 8px 12px 6px;
+  font-size: 16px;
+  line-height: 24px;
+  outline: none;
+  min-width: 0;
+}
+.md3-field:focus {
+  border-bottom: 2px solid var(--md-primary);
+  padding-bottom: 5px;
+}
+.md3-field::placeholder {
+  color: var(--md-on-surface-variant);
+}
+
+/* 数字输入框保留默认全选等行为，仅去箭头保持整洁 */
+input.md3-field::-webkit-outer-spin-button,
+input.md3-field::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* 画布测量颜色（供 Konva 读取） */
+#root {
+  --canvas-measure-line: var(--md-measure-line);
+}
+
+/* 气泡与菜单的弹出动画 */
+@keyframes md3-pop {
+  from { opacity: 0; transform: scale(0.96) translateY(-4px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+.md3-pop {
+  animation: md3-pop 0.12s ease-out;
+  transform-origin: top center;
+}
+
+/* 滚动条（地图列表等） */
+*::-webkit-scrollbar { width: 10px; height: 10px; }
+*::-webkit-scrollbar-thumb {
+  background: var(--md-outline-variant);
+  border-radius: 5px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+*::-webkit-scrollbar-track { background: transparent; }
