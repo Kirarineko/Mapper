@@ -123,6 +123,26 @@ describe('MapCatalog', () => {
     expect((await catalog.inspect(maps[0].id)).image).toMatchObject({ width: 7, height: 5 })
   })
 
+  it.each(['png', 'jpeg', 'webp'] as const)('releases inspected %s files for immediate rename, replacement and deletion', async (format) => {
+    const root = await directory()
+    const path = join(root, `world-map.${format}`)
+    const moved = join(root, `archived-map.${format}`)
+    const original = await sharp({ create: { width: 7, height: 5, channels: 3, background: '#aabbcc' } }).toFormat(format).toBuffer()
+    const replacement = await sharp({ create: { width: 9, height: 6, channels: 3, background: '#ccaabb' } }).toFormat(format).toBuffer()
+    await writeFile(path, original)
+    const catalog = new MapCatalog()
+    const { maps } = await catalog.selectWorld(root)
+    const inspected = await catalog.inspect(maps[0].id)
+    await rename(path, moved)
+    await writeFile(path, replacement)
+    const changed = await catalog.inspect(maps[0].id)
+    expect(changed.image).toMatchObject({ width: 9, height: 6 })
+    expect(changed.image.sha256).not.toBe(inspected.image.sha256)
+    await rm(path)
+    await rm(moved)
+    await expect(catalog.resolveMap(maps[0].id)).rejects.toMatchObject({ code: 'MAP_NOT_FOUND' })
+  })
+
   it('rejects unsupported bytes disguised with an image extension and images wider than the limit', async () => {
     const root = await directory()
     await writeFile(join(root, 'fake-map.png'), 'not a png')

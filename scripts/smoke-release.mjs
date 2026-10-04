@@ -11,6 +11,7 @@ import { app, BrowserWindow, dialog } from 'electron'
 
 const projectRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const appRoot = resolve(process.argv[2] ?? projectRoot)
+const expectedVersion = JSON.parse(readFileSync(join(projectRoot, 'package.json'), 'utf8')).version
 const mainPath = join(appRoot, 'out/main/index.js')
 const requireApp = createRequire(pathToFileURL(mainPath))
 const temporary = mkdtempSync(join(tmpdir(), 'mapper-release-smoke-'))
@@ -91,7 +92,9 @@ async function waitFor(check, label) {
 }
 
 async function run() {
-  assert.equal(JSON.parse(readFileSync(join(appRoot, 'package.json'), 'utf8')).version, '0.1.0')
+  const packagedVersion = JSON.parse(readFileSync(join(appRoot, 'package.json'), 'utf8')).version
+  assert.equal(typeof expectedVersion, 'string')
+  assert.equal(packagedVersion, expectedVersion, 'Packaged version must match project version')
   assert.ok(requireApp('sharp').versions.vips, 'Packaged sharp/libvips must load')
   await import(pathToFileURL(mainPath).href)
   await app.whenReady()
@@ -176,8 +179,10 @@ async function run() {
   other.destroy()
   assert.deepEqual(runtimeErrors, [])
   console.log(JSON.stringify({
-    result: 'passed', appRoot, electron: process.versions.electron,
-    checks: ['version 0.1.0', 'packaged sharp/libvips', 'React renderer', 'sandbox preload', 'map filename filter', 'native directory IPC', 'WebP preview and tile protocol', 'untainted canvas', 'argument validation', 'atomic save/reload', 'foreign-window IPC denied'],
+    result: 'passed', appRoot, version: packagedVersion, electron: process.versions.electron,
+    // This script is the host app's entry; its getVersion() belongs to that host.
+    smokeHostVersion: app.getVersion(),
+    checks: [`version ${expectedVersion}`, 'packaged sharp/libvips', 'React renderer', 'sandbox preload', 'map filename filter', 'native directory IPC', 'WebP preview and tile protocol', 'untainted canvas', 'argument validation', 'atomic save/reload', 'foreign-window IPC denied'],
   }, null, 2))
 }
 

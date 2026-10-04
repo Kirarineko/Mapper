@@ -1,0 +1,24 @@
+{
+  "bezier-js@6.1.4": [
+    {
+      "filename": "LICENSE.md",
+      "sha256": "4fb7b04152f7b3a7c48c98c638aba80fc1f221e915d605d45d016d87d8e2cc9f",
+      "source": "https://api.github.com/repos/Pomax/bezierjs/git/blobs/73f6bcd359e1acbf895c5c3d1c109d2822394f43",
+      "note": "The v6.1.4 release commit a41f3e08e9724c9973eca0eb5c1304120e72fc70 and npm tarball declare MIT in README.md and package.json but omit a LICENSE file. This original MIT text was subsequently supplied by the same upstream project; it is not claimed to be a file from the v6.1.4 release."
+    }
+  ],
+  "clipper-lib@6.4.2": [
+    {
+      "filename": "LICENSE.Boost.txt",
+      "sha256": "c9bff75738922193e67fa726fa225535870d2aa1059f91452c411736284ad566",
+      "source": "https://www.boost.org/LICENSE_1_0.txt",
+      "note": "Original Boost Software License 1.0 text linked by the published clipper.js source header."
+    },
+    {
+      "filename": "LICENSE.JSBN.txt",
+      "sha256": "e0e396530fd1624126e9a7e0df94811e4062e03baeccb07bc33c934b0fd93a85",
+      "source": "https://api.github.com/repos/andyperlitch/jsbn/git/blobs/24502a9cf7483647d0e4e5b35396082b1295d9c3",
+      "note": "Original Tom Wu JSBN license text preserved by the jsbn upstream mirror. The published clipper.js embeds a JSBN subset and its copyright; the Stanford URL linked by that header could not be retrieved because its TLS certificate does not match its hostname."
+    }
+  ]
+}

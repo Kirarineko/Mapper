@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto'
 import { constants } from 'node:fs'
 import { lstat, open, readdir, realpath, stat } from 'node:fs/promises'
 import { basename, extname, isAbsolute, join, relative, sep } from 'node:path'
-import sharp from 'sharp'
+import sharp from './images'
 import type { ImageIdentity, MapDescriptor, WorldSummary } from '../shared/types'
 import { MapperError } from './errors'
 
