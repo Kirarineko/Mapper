@@ -30,6 +30,9 @@ nsis:
   allowToChangeInstallationDirectory: true
   deleteAppDataOnUninstall: false
   runAfterFinish: false
+  createDesktopShortcut: always
+  createStartMenuShortcut: true
+  shortcutName: mapper
 linux:
   target:
     - target: AppImage

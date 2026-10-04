@@ -89,6 +89,11 @@ jobs:
         if: runner.os == 'Windows'
         run: pnpm exec electron scripts/smoke-release.mjs release/win-unpacked/resources/app.asar
 
+      - name: Verify Windows installation and shortcuts
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: ./scripts/verify-windows-install.ps1
+
       - name: Verify installer files and create checksums
         run: node scripts/verify-artifacts.mjs
 
