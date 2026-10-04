@@ -6,6 +6,7 @@ import { createHash } from 'node:crypto'
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const destination = path.join(root, 'resources', 'notices')
 const packageJson = JSON.parse(await readFile(path.join(root, 'package.json'), 'utf8'))
+const upstreamManifest = JSON.parse(await readFile(path.join(destination, 'upstream', 'manifest.json'), 'utf8'))
 const entries = new Map()
 const optionalMissing = new Set()
 const licensePattern = /(^|[-_])(licen[cs]e|copying|copyright|notice|third[-_]party[-_]notices)([._-]|$)/i
@@ -67,17 +68,24 @@ async function visit(name, from, optional = false) {
     await writeFile(path.join(output, 'NOTICE.source-header.txt'), header)
     files.push(`npm/${slug}/NOTICE.source-header.txt`)
   }
+  if (metadata.name === 'bezier-js') {
+    await copyFile(path.join(directory, 'README.md'), path.join(output, 'README.md'))
+    files.push(`npm/${slug}/README.md`)
+  }
   // Some npm tarballs omit their upstream LICENSE. Keep verified original
   // texts in this repository, keyed by the exact package version.
   const upstream = path.join(destination, 'upstream', 'npm', slug)
-  try {
-    for (const entry of await readdir(upstream, { withFileTypes: true })) {
-      if (!entry.isFile()) continue
-      await copyFile(path.join(upstream, entry.name), path.join(output, entry.name))
-      files.push(`npm/${slug}/${entry.name}`)
-    }
-  } catch (error) {
-    if (error.code !== 'ENOENT') throw error
+  const fallback = upstreamManifest[key] ?? []
+  for (const entry of fallback) {
+    // Git may check text files out as CRLF on Windows; restore upstream LF.
+    const text = (await readFile(path.join(upstream, entry.filename), 'utf8')).replaceAll('\r\n', '\n')
+    const sha256 = createHash('sha256').update(text).digest('hex')
+    if (sha256 !== entry.sha256) throw new Error(`Upstream notice checksum mismatch: ${key}/${entry.filename}`)
+    await writeFile(path.join(output, entry.filename), text)
+    files.push(`npm/${slug}/${entry.filename}`)
+  }
+  if (metadata.name === 'bezier-js' && fallback.length === 0 && !files.some((filename) => licensePattern.test(path.basename(filename)))) {
+    throw new Error(`Missing verified upstream license: ${key}`)
   }
   if (files.length === 0) throw new Error(`No original license text found: ${key}`)
   const repository = typeof metadata.repository === 'string' ? metadata.repository : metadata.repository?.url
@@ -89,6 +97,7 @@ async function visit(name, from, optional = false) {
     files,
     platforms: metadata.os ?? null,
     architectures: metadata.cpu ?? null,
+    upstreamTexts: fallback,
   }
   entries.set(key, record)
   await writeFile(path.join(output, 'metadata.json'), `${JSON.stringify(record, null, 2)}\n`)
@@ -129,5 +138,5 @@ const inventory = {
 }
 await writeFile(path.join(destination, 'inventory.json'), `${JSON.stringify(inventory, null, 2)}\n`)
 const rows = sorted.map((record) => `| ${record.name} | ${record.version} | ${typeof record.license === 'string' ? record.license : JSON.stringify(record.license)} | ${record.files.map((filename) => `[${path.basename(filename)}](${filename})`).join(', ')} |`)
-await writeFile(path.join(destination, 'README.md'), `# mapper ${packageJson.version} 第三方许可证\n\n由 scripts/collect-notices.mjs 从实际安装的 production 依赖及 Electron 运行时收集。原始文本保持不变。平台原生组件详情及 LGPL 源码说明另见 THIRD_PARTY_NOTICES.md 和 source-manifest.json。\n\n| 包 | 版本 | 元数据许可证 | 原始声明 |\n| --- | --- | --- | --- |\n${rows.join('\n')}\n\nElectron ${electronMetadata.version}：[MIT](electron/LICENSE)；[Chromium 及第三方组件](electron/LICENSES.chromium.html)。\n\n完整版本、锁文件 SHA-256 和未安装的可选平台包见 inventory.json。可选包清单不表示安装包包含这些包；最终分发内容应检查安装包。\n`)
+await writeFile(path.join(destination, 'README.md'), `# mapper ${packageJson.version} 第三方许可证\n\n由 scripts/collect-notices.mjs 从实际安装的 production 依赖及 Electron 运行时收集。原始文本保持不变；缺失的包许可证使用 upstream/manifest.json 中有来源和 SHA-256 的原文。平台原生组件详情及 LGPL 源码要求另见安装资源目录中的 THIRD_PARTY_NOTICES.md。\n\n| 包 | 版本 | 元数据许可证 | 原始声明 |\n| --- | --- | --- | --- |\n${rows.join('\n')}\n\nElectron ${electronMetadata.version}：[MIT](electron/LICENSE)；[Chromium 及第三方组件](electron/LICENSES.chromium.html)。\n\n完整版本、锁文件 SHA-256、补充原文来源和未安装的可选平台包见 inventory.json。可选包清单不表示安装包包含这些包；最终分发内容应检查安装包。原生 libvips 包的 README 是上游许可摘要，采集成功不代表已经完成 LGPL 对应源码分发。\n`)
 console.log(`Collected original notices for ${entries.size} packages and Electron ${electronMetadata.version}`)

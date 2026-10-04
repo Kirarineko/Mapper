@@ -1,6 +1,8 @@
-import { mkdtemp, readFile, readdir, writeFile, mkdir, chmod, symlink, truncate, stat, rm } from 'node:fs/promises'
+import { execFile } from 'node:child_process'
+import { mkdtemp, readFile, readdir, writeFile, mkdir, chmod, symlink, truncate, stat, rm, realpath } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { isAbsolute, join } from 'node:path'
+import { promisify } from 'node:util'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import type { ConfigDocument, ImageIdentity, SaveRequest } from '../src/shared/types'
 import { FeatureStore, MAX_DOCUMENT_BYTES } from '../src/main/storage'
@@ -53,6 +55,68 @@ describe('FeatureStore', () => {
     expect((await reopened.read(map, image, 'config')).document).toEqual(config(250))
     expect((await reopened.read(otherMap, image, 'config')).document).toEqual(config(8000))
     expect(await readdir(root)).toEqual(expect.arrayContaining(['map.png_data', 'map.jpg_data']))
+  })
+
+  it.skipIf(process.platform !== 'win32')('shares saves, backups and recovery between Windows short and long directory names', async (context) => {
+    const longRoot = await realpath(root)
+    const { stdout } = await promisify(execFile)(process.env.ComSpec ?? 'cmd.exe', [
+      '/d', '/c', 'for %I in ("%MAPPER_TEST_DIRECTORY%") do @echo %~sI'
+    ], {
+      encoding: 'utf8',
+      windowsHide: true,
+      windowsVerbatimArguments: true,
+      env: { ...process.env, MAPPER_TEST_DIRECTORY: longRoot }
+    })
+    const shortRoot = stdout.trim()
+    expect(isAbsolute(shortRoot)).toBe(true)
+    expect(await realpath(shortRoot)).toBe(longRoot)
+    if (shortRoot.toLowerCase() === longRoot.toLowerCase()) {
+      context.skip('The test volume does not provide distinct Windows 8.3 directory names.')
+    }
+    const longMap = join(longRoot, 'map.png')
+    const shortMap = join(shortRoot, 'map.png')
+    expect(await store.read(shortMap, image, 'config')).toMatchObject({
+      status: 'missing', revision: null, document: config()
+    })
+    expect(await store.read(longMap, image, 'config')).toMatchObject({
+      status: 'missing', revision: null, document: config()
+    })
+
+    const first = await store.save(shortMap, image, request(config(250)))
+    await store.save(longMap, image, request(config(8000), first.revision))
+    expect((await store.read(shortMap, image, 'config')).document).toEqual(config(8000))
+    expect((await new FeatureStore().read(longMap, image, 'config')).document).toEqual(config(8000))
+    const directory = `${longMap}_data`
+    const file = join(directory, 'Config.json')
+    expect(JSON.parse(await readFile(`${file}.bak`, 'utf8'))).toEqual(config(250))
+    const corrupt = '{ corrupt document must survive alias recovery'
+    await writeFile(file, corrupt)
+    expect(await store.read(shortMap, image, 'config')).toMatchObject({
+      status: 'corrupt', backupAvailable: true
+    })
+    const restored = await store.recover(shortMap, image, 'config')
+    expect(restored.document).toEqual(config(250))
+    expect((await store.read(longMap, image, 'config')).document).toEqual(config(250))
+    const preserved = (await readdir(directory)).find((name) => name.startsWith('Config.json.corrupt-'))
+    expect(preserved).toBeDefined()
+    expect(await readFile(join(directory, preserved!), 'utf8')).toBe(corrupt)
+
+    const candidates = [config(500), config(700)]
+    const results = await Promise.allSettled([
+      store.save(shortMap, image, request(candidates[0], restored.revision)),
+      store.save(longMap, image, request(candidates[1], restored.revision))
+    ])
+    expect(results.filter((result) => result.status === 'fulfilled')).toHaveLength(1)
+    expect(results.filter((result) => result.status === 'rejected')).toEqual([
+      expect.objectContaining({ reason: expect.objectContaining({ code: 'CONFLICT' }) })
+    ])
+    const winner = results.findIndex((result) => result.status === 'fulfilled')
+    const latest = await store.read(longMap, image, 'config')
+    expect(latest.document).toEqual(candidates[winner])
+    expect(await store.read(shortMap, image, 'config')).toEqual(latest)
+    await expect(store.flush()).rejects.toMatchObject({ code: 'CONFLICT' })
+    await store.save(shortMap, image, request(config(900), latest.revision))
+    await expect(store.flush()).resolves.toBeUndefined()
   })
 
   it('backs up the prior valid document and explicitly restores it while preserving corrupt bytes', async () => {

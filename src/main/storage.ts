@@ -75,7 +75,7 @@ async function writable(path: string, mode: number): Promise<void> {
   }
 }
 
-async function safeAncestors(directory: string): Promise<void> {
+async function safeAncestors(directory: string): Promise<string> {
   const ancestors: string[] = []
   let current = directory
   while (true) {
@@ -90,9 +90,20 @@ async function safeAncestors(directory: string): Promise<void> {
       throw new MapperError('UNSAFE_PATH', '地图数据路径的父目录不能使用符号链接。')
     }
   }
-  if (await realpath(directory) !== directory) {
-    throw new MapperError('UNSAFE_PATH', '地图数据目录的真实路径发生变化，请重新选择目录。')
+  const original = await lstat(directory, { bigint: true })
+  const canonical = await realpath(directory)
+  if (canonical !== directory) {
+    // Windows temporary directories can use an 8.3 alias for the same directory.
+    const resolved = await lstat(canonical, { bigint: true })
+    if (
+      process.platform !== 'win32' || original.isSymbolicLink() || !original.isDirectory() ||
+      resolved.isSymbolicLink() || !resolved.isDirectory() || original.ino === 0n ||
+      original.dev !== resolved.dev || original.ino !== resolved.ino
+    ) {
+      throw new MapperError('UNSAFE_PATH', '地图数据目录的真实路径发生变化，请重新选择目录。')
+    }
   }
+  return canonical
 }
 
 async function safeDirectory(paths: StoragePaths, create = false): Promise<boolean> {
@@ -234,8 +245,7 @@ export class FeatureStore {
       throw new MapperError('INVALID_ARGUMENT', '地图路径或功能类型无效。')
     }
     try {
-      const parent = dirname(mapPath)
-      await safeAncestors(parent)
+      const parent = await safeAncestors(dirname(mapPath))
       const directory = join(parent, `${basename(mapPath)}_data`)
       const file = join(directory, filenames[feature])
       return { directory, file, backup: `${file}.bak` }

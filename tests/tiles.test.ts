@@ -9,11 +9,11 @@ import { imageLevels, TileCache } from '../src/main/tiles'
 import type { TileProgress } from '../src/shared/types'
 
 const temporary: string[] = []
-async function fixture(width = 1301, height = 703): Promise<{ root: string; cache: string; catalog: MapCatalog; mapId: string; imagePath: string }> {
+async function fixture(width = 1301, height = 703, format: 'png' | 'webp' = 'png'): Promise<{ root: string; cache: string; catalog: MapCatalog; mapId: string; imagePath: string }> {
   const root = await mkdtemp(join(tmpdir(), 'mapper-tiles-'))
   temporary.push(root)
-  const imagePath = join(root, 'map.png')
-  await sharp({ create: { width, height, channels: 4, background: '#88bbcc' } }).png().toFile(imagePath)
+  const imagePath = join(root, `map.${format}`)
+  await sharp({ create: { width, height, channels: 4, background: '#88bbcc' } }).toFormat(format).toFile(imagePath)
   const catalog = new MapCatalog()
   const world = await catalog.selectWorld(root)
   expect(world.maps).toHaveLength(1)
@@ -71,6 +71,24 @@ describe('TileCache', () => {
     expect(progress.filter((event) => event.phase === 'preview')).toHaveLength(1)
     expect(await sharp(await tiles.resolveResource(first.previewUrl)).metadata()).toMatchObject({ width: 23, height: 17 })
     expect((await readdir(cache)).some((name) => name.includes('.tmp-'))).toBe(false)
+  })
+
+  it('releases WebP source and preview/tile metadata handles before deleting and rebuilding a cache', async () => {
+    const { cache, catalog, mapId, imagePath } = await fixture(23, 17, 'webp')
+    const tiles = new TileCache(cache, catalog)
+    const manifest = await tiles.prepare(mapId)
+    const preview = await tiles.resolveResource(manifest.previewUrl)
+    const tile = await tiles.resolveResource(manifest.tileUrlTemplate.replace('{level}', '0').replace('{x}', '0').replace('{y}', '0'))
+    for (const path of [imagePath, preview, tile]) {
+      expect(await sharp(path).metadata()).toMatchObject({ format: 'webp', width: 23, height: 17 })
+    }
+    await rm(preview)
+    await expect(tiles.resolveResource(manifest.previewUrl)).rejects.toMatchObject({ code: 'NOT_READY' })
+    await rm(cache, { recursive: true, force: true })
+    expect(await tiles.prepare(mapId)).toEqual(manifest)
+    await rm(imagePath)
+    await expect(tiles.resolveResource(manifest.previewUrl)).rejects.toMatchObject({ code: 'MAP_NOT_FOUND' })
+    await rm(cache, { recursive: true, force: true })
   })
 
   it('rejects traversal, URL suffixes, unknown maps, stale hashes and out-of-range coordinates', async () => {

@@ -1,14 +1,13 @@
 import { randomUUID } from 'node:crypto'
 import { lstat, mkdir, readFile, readdir, realpath, rename, rm, writeFile } from 'node:fs/promises'
 import { basename, join } from 'node:path'
-import sharp from 'sharp'
+import sharp from './images'
 import type { ImageIdentity, TileLevel, TileManifest, TileProgress } from '../shared/types'
 import { MapCatalog, verifyContainedPath } from './catalog'
 import { MapperError } from './errors'
 
 const TILE_SIZE = 512
 const CACHE_VERSION = 1
-sharp.concurrency(2)
 
 export function imageLevels(image: ImageIdentity): TileLevel[] {
   if (![image.width, image.height].every((dimension) => Number.isInteger(dimension) && dimension > 0 && dimension <= 16_384)) {
